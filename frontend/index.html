@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analisis Stock & LGBM</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <h1>Analisis Stock</h1>
+    <p>Masuk untuk melanjutkan</p>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="admin">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••">
+    </div>
+    <div id="login-error" class="alert alert-error" style="display:none"></div>
+    <button class="btn btn-primary" id="btn-login" style="width:100%;margin-top:8px">
+      Masuk
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════════════════════ -->
+<div id="app" class="app-layout" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">📦 Stock Analysis</div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-page="dashboard">Dashboard</button>
+      <button class="nav-item" data-page="input-data">Input Data</button>
+      <button class="nav-item" data-page="stock-analysis">Analisis Stock</button>
+      <button class="nav-item" data-page="abc-analysis">Analisis ABC</button>
+      <button class="nav-item" data-page="lgbm">🤖 LGBM Predict</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-username"></div>
+      <button class="btn btn-secondary" id="btn-logout" style="margin-top:8px;width:100%;font-size:13px">
+        Keluar
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- ── Dashboard ─────────────────────────────────────────────────────── -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Ringkasan status data dan hasil analisis</div>
+
+      <div id="dashboard-metrics" class="metrics-row">
+        <div class="metric-card"><div class="metric-value">—</div><div class="metric-label">Data Penjualan</div></div>
+        <div class="metric-card"><div class="metric-value">—</div><div class="metric-label">Produk Referensi</div></div>
+        <div class="metric-card"><div class="metric-value">—</div><div class="metric-label">Data Stock</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Status Data</div>
+        <div id="status-table">
+          <div class="spinner-wrap"><div class="spinner"></div><span>Memuat status...</span></div>
+        </div>
+        <div class="btn-group" style="margin-top:12px">
+          <button class="btn btn-secondary" id="btn-refresh-status">↻ Refresh Status</button>
+          <button class="btn btn-primary" id="btn-goto-input">Ke Input Data →</button>
+        </div>
+      </div>
+
+      <div id="dashboard-abc" class="card" style="display:none">
+        <div class="card-title">Distribusi ABC (hasil terakhir)</div>
+        <div id="abc-chart-container" style="height:200px;display:flex;align-items:flex-end;gap:12px;padding:12px 0"></div>
+      </div>
+    </div>
+
+    <!-- ── Input Data ─────────────────────────────────────────────────────── -->
+    <div id="page-input-data" class="page">
+      <div class="page-title">📥 Input Data</div>
+      <div class="page-sub">Muat data dari Google Drive atau upload dari komputer</div>
+
+      <!-- Penjualan -->
+      <div class="card">
+        <div class="card-title">1. Data Penjualan / SO</div>
+        <div class="tabs">
+          <button class="tab active" data-tab="penj-drive">☁️ Google Drive</button>
+          <button class="tab" data-tab="penj-upload">💻 Upload File</button>
+        </div>
+
+        <div id="penj-drive" class="tab-panel active">
+          <div id="penj-drive-files" class="text-muted text-sm">Klik tombol di bawah untuk melihat file di Drive</div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-list-penj">🔍 Lihat File di Drive</button>
+            <button class="btn btn-primary" id="btn-load-penj-drive">☁️ Muat Semua dari Drive</button>
+          </div>
+          <div id="penj-drive-result"></div>
+        </div>
+
+        <div id="penj-upload" class="tab-panel">
+          <div class="upload-zone" id="penj-drop-zone">
+            Drag & drop file Excel/CSV di sini, atau klik untuk pilih<br>
+            <span class="text-sm">(bisa pilih lebih dari satu file)</span>
+          </div>
+          <input type="file" id="penj-file-input" accept=".xlsx,.xls,.csv" multiple style="display:none">
+          <div id="penj-upload-result"></div>
+        </div>
+      </div>
+
+      <!-- Produk Referensi -->
+      <div class="card">
+        <div class="card-title">2. Produk Referensi</div>
+        <div class="tabs">
+          <button class="tab active" data-tab="prod-drive">☁️ Google Drive</button>
+          <button class="tab" data-tab="prod-upload">💻 Upload File</button>
+        </div>
+
+        <div id="prod-drive" class="tab-panel active">
+          <div id="prod-drive-files" class="text-muted text-sm">Klik untuk lihat file produk di Drive</div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-list-prod">🔍 Lihat File Produk</button>
+          </div>
+          <div id="prod-drive-result"></div>
+        </div>
+
+        <div id="prod-upload" class="tab-panel">
+          <div class="alert alert-info">Kolom wajib: No. Barang, BRAND Barang, Kategori Barang, Nama Barang</div>
+          <div class="upload-zone" id="prod-drop-zone">Klik atau drag file produk (.xlsx / .csv)</div>
+          <input type="file" id="prod-file-input" accept=".xlsx,.xls,.csv" style="display:none">
+          <div id="prod-upload-result"></div>
+        </div>
+      </div>
+
+      <!-- Stock -->
+      <div class="card">
+        <div class="card-title">3. Data Stock</div>
+        <div class="tabs">
+          <button class="tab active" data-tab="stock-drive">☁️ Google Drive</button>
+          <button class="tab" data-tab="stock-upload">💻 Upload File</button>
+        </div>
+
+        <div id="stock-drive" class="tab-panel active">
+          <div id="stock-drive-files" class="text-muted text-sm">Klik untuk lihat file stock di Drive</div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" id="btn-list-stock">🔍 Lihat File Stock</button>
+          </div>
+          <div id="stock-drive-result"></div>
+        </div>
+
+        <div id="stock-upload" class="tab-panel">
+          <div class="alert alert-info">Format: Sheet1, skiprows=9. Kolom gudang: A-ITC, B, C, dll.</div>
+          <div class="upload-zone" id="stock-drop-zone">Klik atau drag file stock (.xlsx)</div>
+          <input type="file" id="stock-file-input" accept=".xlsx,.xls" style="display:none">
+          <div id="stock-upload-result"></div>
+        </div>
+      </div>
+
+      <!-- Status Ringkasan -->
+      <div class="card">
+        <div class="card-title">📋 Status Semua Data</div>
+        <div id="input-status-summary"></div>
+      </div>
+    </div>
+
+    <!-- ── Stock Analysis ─────────────────────────────────────────────────── -->
+    <div id="page-stock-analysis" class="page">
+      <div class="page-title">📊 Analisis Stock</div>
+      <div class="page-sub">Hitung Min Stock, Max Stock, dan WMA</div>
+
+      <div class="card">
+        <div class="card-title">Parameter Analisis</div>
+        <div class="form-group">
+          <label>Filter Dept.</label>
+          <select id="dept-filter">
+            <option value="ALL">Semua Dept.</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D - SMG</option>
+            <option value="E">E - JOG</option>
+            <option value="F">F - MLG</option>
+            <option value="H">H - BALI</option>
+          </select>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-run-analysis">▶ Jalankan Analisis</button>
+          <button class="btn btn-secondary" id="btn-download-stock" disabled>⬇ Download Excel</button>
+        </div>
+        <div id="analysis-status"></div>
+      </div>
+
+      <div class="card" id="stock-result-card" style="display:none">
+        <div class="card-title">Hasil Analisis Stock</div>
+        <div class="flex gap-2 items-center" style="margin-bottom:12px">
+          <label class="text-sm">Filter ABC:</label>
+          <select id="abc-result-filter" style="width:auto">
+            <option value="ALL">Semua</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+          </select>
+        </div>
+        <div id="stock-result-table"></div>
+      </div>
+    </div>
+
+    <!-- ── ABC Analysis ───────────────────────────────────────────────────── -->
+    <div id="page-abc-analysis" class="page">
+      <div class="page-title">🔤 Analisis ABC</div>
+      <div class="page-sub">Klasifikasi produk berdasarkan volume penjualan</div>
+      <div class="card">
+        <div class="alert alert-info">
+          Jalankan <strong>Analisis Stock</strong> terlebih dahulu — hasil ABC tersedia di sana.
+          Halaman ini menampilkan distribusi ABC dari hasil terakhir.
+        </div>
+        <div id="abc-full-result"></div>
+      </div>
+    </div>
+
+    <!-- ── LGBM ───────────────────────────────────────────────────────────── -->
+    <div id="page-lgbm" class="page">
+      <div class="page-title">🤖 LGBM Prediction</div>
+      <div class="page-sub">Training model dan prediksi SO bulan depan</div>
+
+      <!-- Training -->
+      <div class="card">
+        <div class="card-title">Step 1: Training Model</div>
+        <p class="text-sm text-muted" style="margin-bottom:12px">
+          Training berjalan di background — Anda bisa pindah halaman dan kembali cek statusnya.
+        </p>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-start-train">▶ Mulai Training</button>
+          <button class="btn btn-secondary" id="btn-check-train">↻ Cek Status</button>
+        </div>
+        <div id="train-status" style="margin-top:12px"></div>
+      </div>
+
+      <!-- Prediksi -->
+      <div class="card">
+        <div class="card-title">Step 2: Prediksi</div>
+        <div class="form-group">
+          <label>Bulan Target</label>
+          <input type="month" id="predict-month" value="">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-run-predict">▶ Jalankan Prediksi</button>
+          <button class="btn btn-secondary" id="btn-download-lgbm" disabled>⬇ Download Excel</button>
+        </div>
+        <div id="predict-status"></div>
+      </div>
+
+      <!-- Hasil -->
+      <div class="card" id="lgbm-result-card" style="display:none">
+        <div class="card-title">Hasil Prediksi</div>
+        <div id="lgbm-result-table"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
